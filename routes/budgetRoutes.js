@@ -11,23 +11,23 @@ router.use(authenticateToken);
 router.get('/months', async (req, res) => {
   try {
     const userId = req.user.id;
+
+    // ha a kliens megadja, használjuk azt, különben az aktuális hónapot
+    const monthIndex = req.query.month ? parseInt(req.query.month) : new Date().getMonth();
     const now = new Date();
+    const year = now.getFullYear();
 
-    // az adott hónap 1. napja
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1, 12, 0, 0);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0, 12, 0, 0);
+    // adott hónap első és utolsó napja
+    const firstDay = new Date(year, monthIndex, 1, 12, 0, 0);
+    const lastDay = new Date(year, monthIndex + 1, 0, 12, 0, 0);
 
-    // keresés: létezik-e az aktuális hónap
     let currentMonth = await budget_months.findOne({
       where: {
         userId,
-        month: {
-          [Op.between]: [firstDay, lastDay],
-        },
+        month: { [Op.between]: [firstDay, lastDay] },
       },
     });
 
-    // ha nincs, automatikusan létrehozzuk
     if (!currentMonth) {
       currentMonth = await budget_months.create({
         userId,
@@ -38,7 +38,6 @@ router.get('/months', async (req, res) => {
       console.log('Új hónap automatikusan létrehozva:', firstDay);
     }
 
-    // az összes hónap lekérése (időrendben)
     const allMonths = await budget_months.findAll({
       where: { userId },
       order: [['month', 'ASC']],
